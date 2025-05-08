@@ -32,8 +32,8 @@ var resubmit = function() {
       });
       
       // If final is true, we complete the HIT after task finishes
-      if (final) {
-        psiturk.completeHIT();  // Complete the HIT when task is done
+      if (final && typeof psiturk.completeHIT === 'function') {
+        psiturk.completeHIT();
       }
     };
   

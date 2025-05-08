@@ -3,7 +3,7 @@
 var phasethreeroom=["<div id='displayhelp' style='display:none'>"
 +`</div><button id='batman' style='display: block;margin: 0 auto;padding: 10px 20px;background-color: #4CAF50;color: black;border: none;border-radius: 8px;font-size: 16px;cursor: pointer;box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);transition: background-color 0.3s ease;', onclick='initiatep3()'>Click to start</button><div id='spiderman' style='display: none;'><div id='Phase3Body'><br><div id='div2'  style='width: 700px; margin: 0 auto; position: relative; bottom: 10%; border: 1px solid #aaaaaa;'><img id='drag01' src='../static/images/${imageList[0]}' alt='Aliance' width='100' height='100' draggable='true' ondragstart='drag(event)'><img id='drag02' src='../static/images/${imageList[1]}' alt='Boulder' width='100' height='100' draggable='true' ondragstart='drag(event)'>
 <img id='drag03' src='../static/images/${imageList[2]}' alt='Cornwall' width='100' height='100' draggable='true' ondragstart='drag(event)'><img id='drag04' src='../static/images/${imageList[3]}' alt='Custer' width='100' height='100' draggable='true' ondragstart='drag(event)'><img id='drag05' src='../static/images/${imageList[4]}' alt='DelawareCity' width='100' height='100' draggable='true' ondragstart='drag(event)'><img id='drag06' src='../static/images/${imageList[5]}' alt='Medora' width='100' height='100' draggable='true' ondragstart='drag(event)'><img id='drag07' src='../static/images/${imageList[6]}' alt='Newport' width='100' height='100' draggable='true' ondragstart='drag(event)'><img id='drag08' src='../static/images/${imageList[7]}' alt='ParkCity' width='100' height='100' draggable='true' ondragstart='drag(event)'><img id='drag09' src='../static/images/${imageList[8]}' alt='Racine' width='100' height='100' draggable='true' ondragstart='drag(event)'>
-<img id='drag10' src='../static/images/${imageList[9]}' alt='Sitka' width='100' height='100' draggable='true' ondragstart='drag(event)'><img id='drag11' src='../static/images/${imageList[10]}' alt='WestPalmBeach' width='100' height='100' draggable='true' ondragstart='drag(event)'><img id='drag12' src='../static/images/${imageList[11]}' alt='Yukon' width='100' height='100' draggable='true' ondragstart='drag(event)'><img id='drag13' src='../static/images/${imageList[12]}' alt='img13' width='100' height='100' draggable='true' ondragstart='drag(event)'></div>`
+<img id='drag10' src='../static/images/${imageList[9]}' alt='Sitka' width='100' height='100' draggable='true' ondragstart='drag(event)'><img id='drag11' src='../static/images/${imageList[10]}' alt='WestPalmBeach' width='100' height='100' draggable='true' ondragstart='drag(event)'><img id='drag12' src='../static/images/${imageList[11]}' alt='Yukon' width='100' height='100' draggable='true' ondragstart='drag(event)'></div>`
                     +"<div id='div1' style='width: 1200px; height: 700px; margin: 0 auto; position: relative; bottom: 10%; border: 1px solid #aaaaaa; background-color: lightgray;'ondrop='drop(event)' ondragover='allowDrop(event) '><div id='div3' style='width: 1200px; height: 700px; margin: 0 auto; position: relative; '></div><img id='return' src='../static/images/return.png' style='position: relative;left: 450px;bottom: 100px ;border: 2px solid black' width='50'height='50'><button id='nextButton' style='display:none;margin: 0 auto;padding: 10px 20px;background-color: #4CAF50;color: black;border: none;border-radius: 8px;font-size: 16px;cursor: pointer;box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);transition: background-color 0.3s ease;'>Submit</button></div></div></div>"]
 //jspsych-html-button-response-button-0
 //PART THAT NEED TO BE RUN UNDER BUTTON
@@ -64,7 +64,7 @@ function initiatep3(){
     $('#displayhelp').show()
 
     // Load only 12 images
-    for (let i = 1; i <= 13; i++) {
+    for (let i = 1; i <= 12; i++) {
         if (i<10){
             images[i-1] = document.getElementById(`drag0${i}`);
         }else{
@@ -79,7 +79,7 @@ function initiatep3(){
     document.getElementById("batman").style.display = "none";
 
     // Enable dragging for all
-    for (let i = 1; i <= 13; i++) {
+    for (let i = 1; i <= 12; i++) {
         if (i<10){
             dragElement(document.getElementById(`drag0${i}`));
         }else{
@@ -96,7 +96,7 @@ function initiatep3(){
 
 function checkAllConnected() {
     let adjacency = {};
-    for (let i = 1; i <= 13; i++) {
+    for (let i = 1; i <= 12; i++) {
         const id = i < 10 ? `drag0${i}` : `drag${i}`;
         adjacency[id] = [];
     }
@@ -104,37 +104,20 @@ function checkAllConnected() {
     for (let i = 0; i <= linecounter; i++) {
         if (specificline[i]) {
             let imgIDs = specificline[i].name[0];
-            let first = imgIDs.slice(0, imgIDs.length/2);
-            let second = imgIDs.slice(imgIDs.length/2);
+            let first = imgIDs.slice(0, imgIDs.length / 2);
+            let second = imgIDs.slice(imgIDs.length / 2);
             adjacency[first].push(second);
             adjacency[second].push(first);
         }
     }
 
-    // BFS to see if all nodes are connected
-    let visited = new Set();
-    let keys = Object.keys(adjacency);
-    let queue = [];
+    // Check if each node has at least one connection
+    let allHaveConnection = Object.values(adjacency).every(neighbors => neighbors.length >= 1);
 
-    if (keys.length > 0) {
-        queue.push(keys[0]); // Start from any node
-        visited.add(keys[0]);
-    }
-
-    while (queue.length > 0) {
-        let node = queue.shift();
-        for (let neighbor of adjacency[node]) {
-            if (!visited.has(neighbor)) {
-                visited.add(neighbor);
-                queue.push(neighbor);
-            }
-        }
-    }
-
-    if (visited.size === 13) {
-        continueButton(); // all connected
+    if (allHaveConnection) {
+        continueButton(); // Every image has at least one connection
     } else {
-        document.getElementById('nextButton').style.display = 'none'; // hide again
+        document.getElementById('nextButton').style.display = 'none'; // Hide if any are isolated
     }
 }
 

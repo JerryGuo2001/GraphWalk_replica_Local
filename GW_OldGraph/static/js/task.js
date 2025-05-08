@@ -584,7 +584,6 @@ var thank_you = {
   on_finish: function (data) {
     data.trial_type = 'thank_you';
     data.detectfocus = detectfocus;
-    save_data(true)
   }
 }
 
