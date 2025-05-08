@@ -8,7 +8,7 @@ if (debugmode==true){
 }else{
   n_learning_trial=128 //This determine the number of learning trial you want in total
   n_direct_trial=32 //how many direct trial you want
-  n_shortest_trial=60 //how many shortest path you want
+  n_shortest_trial=96 //how many shortest path you want
   n_goaldir_trial=1 //how many goal directed planning you want
 }
 
@@ -431,12 +431,12 @@ let shuffled_two_diff_correct = []
 let shuffled_three_diff_correct = []
 let combined_arr = []
 
-for (let i = 0;i < 20;i++){
+for (let i = 0;i < 38;i++){
   shuffled_one_diff.push(onediff[i])
   shuffled_one_diff_correct.push(onediffcorrect[i])
   combined_arr.push(i)
 }
-for (let i = 0;i < 20;i++){
+for (let i = 0;i < 38;i++){
   shuffled_two_diff.push(twodiff[i])
   shuffled_two_diff_correct.push(twodiffcorrect[i])
   combined_arr.push(i+20)
