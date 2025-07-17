@@ -63,7 +63,7 @@ var welcome = {
     window.useridtouse=data.responses
     window.useridtouse = useridtouse.split('"')[3];
     subject_id=useridtouse
-    save_data()
+    
   }
 }
 //welcome page end
@@ -963,7 +963,7 @@ function recon_createPhase3(numberoftrial){
         //   });
         // },
         on_start:function(){
-          save_data()
+          
         },
         on_finish: function (data) {
           data.trial_type='Graph Reconstruction'
