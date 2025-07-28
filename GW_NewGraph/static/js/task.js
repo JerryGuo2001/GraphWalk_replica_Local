@@ -2,6 +2,12 @@ var debug_mode = 0; // debug mode determines how long the blocks are, 5 sec in d
 //var data_save_method = 'csv_server_py';
 var data_save_method = 'csv_client';
 
+var part2_sfa= NaN
+var direct_warning = 0
+var short_warning = 0
+var quickKP = 0;
+var infKP = 0;
+var timer = 0;
 // Will be set to true when experiment is exiting fullscreen normally, to prevent above end experiment code
 var normal_exit = false;
 var window_height = window.screen.height;
@@ -58,15 +64,28 @@ var welcome = {
   on_finish: function (data) {
     data.sequence = sequence
     data.trial_type = "id_enter"
-    data.stimulus = "id_enter"
+    data.stimulus = "replication"
     data.graphorder = `${imageList.join("; ")}`
     window.useridtouse=data.responses
     window.useridtouse = useridtouse.split('"')[3];
     subject_id=useridtouse
-    
   }
 }
 //welcome page end
+
+var too_quick={
+  type: 'html-keyboard-response',
+  stimulus: '<h1 style="color: red;font-size: 50px">Your response was too quick. Please take your time to carefully consider your answer before responding.</h1>' +
+            '<p style="color: red;font-size: 50px">The experiment will continue in 10 seconds.</p>',
+  choices: jsPsych.NO_KEYS, // Prevent responses
+  trial_duration: 10000, // Stay on screen for 10 seconds
+  on_finish: function(data) {
+    data.trial_type='slowdown_page'
+    data.stimulus='too_quick'
+    quickKP +=1
+  }
+}
+
 
 //direct_memory
 var dirmem_too_quick_check=0
@@ -135,27 +154,49 @@ var directmemory_phase = {
       data.weighted_accuracy = 0.5
     }
     
+    infKP += 1
+    if (infKP==1){
+      // Start the timer
+      timer = 0;
+      infINT = setInterval(() => {
+          timer++;;
+      }, 1000);
+    }
+    if (infKP == 4 && timer < 4) {
+      clearInterval(infINT)
+      jsPsych.addNodeToEndOfTimeline({
+      timeline: [too_quick],
+      }, jsPsych.resumeExperiment)
+      infKP = -1
+      timer = 0;
+      data.tooquick = 1
+    } else if ((infKP <= 4 && timer >= 4)){
+      infKP = 0
+      clearInterval(infINT);
+      timer = 0
+    }
+
+    if (data.rt && data.rt < 300) {
+      jsPsych.addNodeToEndOfTimeline({
+        timeline: [too_quick],
+        }, jsPsych.resumeExperiment)
+    }
+    
+
     let directsum = 0;
     directcorrectness.forEach(function(value) {
       directsum += value;
     });
 
-    if (data.rt<=300){
-      dirmem_too_quick_check+=1
-    }else{
-      dirmem_too_quick_check=0
-    }
     data.cumulative_accuracy = directsum / directcorrectness.length;
-    sfa=data.key_press,
-    curr_direct_trial=curr_direct_trial+1;
 
-    if (dirmem_too_quick_check>=3){
-      directmemory_phase.stimulus=create_direct_trial(room_direct_up,room_direct_left,room_direct_mid,room_direct_right,curr_direct_trial)
-      attentioncheck(directmemory_phase,a=1,curr_direct_trial,n_direct_trial,intro_short)
-    }else{
-      directmemory_phase.stimulus=create_direct_trial(room_direct_up,room_direct_left,room_direct_mid,room_direct_right,curr_direct_trial)
-      attentioncheck(directmemory_phase,a=1,curr_direct_trial,n_direct_trial,intro_short)
+    curr_direct_trial=curr_direct_trial+1;
+    part2_sfa=data.key_press
+    if (!part2_sfa){
+      direct_warning +=1
     }
+    directmemory_phase.stimulus=create_direct_trial(room_direct_up,room_direct_left,room_direct_mid,room_direct_right,curr_direct_trial)
+    attentioncheck(directmemory_phase,part2_sfa,curr_direct_trial,n_direct_trial,intro_short,phase='direct')
   }
 }
 //Direct Memory test end
@@ -305,7 +346,7 @@ function create_instruct(instruct,instructnames,instruction_number,prac_attentio
   //practice attention check
 var ac_colorprepare=colorStart()
 var ac_colorstop=colorStop(ac_colorprepare)
-var ac_colorlist=['blue','green','green','blue','green','green','blue','green','blue','blue']
+var ac_colorlist=['blue','yellow','yellow','blue','yellow','yellow','blue','yellow','blue','blue']
 var ac_colornumber=0
 var total_ac = 0
 var correct_ac = 0
@@ -316,7 +357,7 @@ var instruct_lastonebefore_practice={
   choices: ['spacebar'],
   stimulus: `
   <div style='margin-left:200px ;margin-right: 200px ;text-justify: auto'><p style ='font-size: 30px;line-height:1.5'>
-  You will have 1 second from when the cross flashes blue or green to respond, so please respond quickly. 
+  You will have 1 second from when the cross flashes blue or yellow to respond, so please respond quickly. 
   If you miss several responses in a row, the experiment will quit early. However, remember that while you should pay attention to the center cross changing colors, 
   it is most important that you memorize the pairs (using the strategy we practiced earlier). You will NOT have to memorize the color changes. The task will begin once you press space.
   <p style= 'font-size:25px;margin-top:100px'>[press the spacebar to start]</p>
@@ -353,8 +394,10 @@ var csfa=[]
 
 //attention check color cross
 function create_color_list(color) {
-  return parse("<p style='position:absolute;top: 50%;right: 50%;transform: translate(50%, -50%);font-size: 125px;color: %s;'>\u002B</p>"
-  ,color)
+  return parse("<p style='position:absolute;top:50%;right:50%;transform:translate(50%, -50%);font-size:125px;color:" + color + ";text-shadow:\
+  -2px -2px 0 #000, 0 -2px 0 #000, 2px -2px 0 #000,\
+  -2px 0 0 #000, 2px 0 0 #000,\
+  -2px 2px 0 #000, 0 2px 0 #000, 2px 2px 0 #000;'>+</p>");
 }
 
 var prac_attentioncheck_colorchange={
@@ -393,7 +436,7 @@ var prac_attentioncheck_thethird={
         jsPsych.addNodeToEndOfTimeline({
           timeline: [prac_attentioncheck_blackplus],
         }, jsPsych.resumeExperiment)
-      }else if (csfa==50&&ac_colorlist[ac_colornumber]=='green'){
+      }else if (csfa==50&&ac_colorlist[ac_colornumber]=='yellow'){
         correct_ac += 1
         jsPsych.addNodeToEndOfTimeline({
           timeline: [prac_attentioncheck_blackplus],
@@ -403,7 +446,7 @@ var prac_attentioncheck_thethird={
         jsPsych.addNodeToEndOfTimeline({
           timeline: [prac_attentioncheck_blackplus],
         }, jsPsych.resumeExperiment)
-      }else if (data.key_press==50&&ac_colorlist[ac_colornumber]=='green'){
+      }else if (data.key_press==50&&ac_colorlist[ac_colornumber]=='yellow'){
         correct_ac += 1
         jsPsych.addNodeToEndOfTimeline({
           timeline: [prac_attentioncheck_blackplus],
@@ -414,7 +457,7 @@ var prac_attentioncheck_thethird={
         }, jsPsych.resumeExperiment)
       }
     }else{
-      if (csfa==49&&ac_colorlist[ac_colornumber]=='blue' || csfa==50&&ac_colorlist[ac_colornumber]=='green' || data.key_press==49&&ac_colorlist[ac_colornumber]=='blue' || data.key_press==49&&ac_colorlist[ac_colornumber]=='green') {
+      if (csfa==49&&ac_colorlist[ac_colornumber]=='blue' || csfa==50&&ac_colorlist[ac_colornumber]=='yellow' || data.key_press==49&&ac_colorlist[ac_colornumber]=='blue' || data.key_press==49&&ac_colorlist[ac_colornumber]=='yellow') {
         correct_ac += 1
       }
       total_ac += 1
@@ -511,7 +554,7 @@ function getACvalues() {
 var helpofattentioncheck={
   type: 'html-keyboard-response',
   choices: ['spacebar'],
-  stimulus: "<div style='margin-left:200px ;margin-right: 200px ;text-justify: auto'><p style ='font-size: 30px;line-height:1.5'>It seems you got one wrong. Remember, for the cross below:</p><img src= '../static/images/isi.png' width='150' height='150'><p style ='font-size: 30px;line-height:1.5'>If the cross flashes <span style='color: blue;'>blue,</span> press the '1' key on your keyboard, if it flashes <span style='color: green;'>green,</span> press '2'.<p style= 'font-size:25px;margin-top:100px'>[press the spacebar to continue]</p>",
+  stimulus: "<div style='margin-left:200px ;margin-right: 200px ;text-justify: auto'><p style ='font-size: 30px;line-height:1.5'>It seems you got one wrong. Remember, for the cross below:</p><img src= '../static/images/isi.png' width='150' height='150'><p style ='font-size: 30px;line-height:1.5'>If the cross flashes <span style='color: blue; text-shadow: -1px -1px 0 #000,1px -1px 0 #000,-1px  1px 0 #000,1px  1px 0 #000'>blue,</span> press the '1' key on your keyboard, if it flashes <span style='color: yellow; text-shadow: -1px -1px 0 #000,1px -1px 0 #000,-1px  1px 0 #000,1px  1px 0 #000'>yellow,</span> press '2'.<p style= 'font-size:25px;margin-top:100px'>[press the spacebar to continue]</p>",
   on_finish: function (data) {
     data.trial_type = 'attentioncheck_help';
     data.stimulus='instruct'
@@ -526,7 +569,7 @@ var learn_prac1_phase = {
   type: 'html-keyboard-responsefl',
   choices: jsPsych.NO_KEYS,
   response_ends_trial: false,
-  stimulus:create_learning_trial(['GW-Tutorial/object_068.jpg'],['GW-Tutorial/object_029.jpg'],0),
+  stimulus:create_learning_trial(['story_example_01.png'],['story_example_02.png'],0),
   stimulus_duration:3000,
   trial_duration:3000,
   on_load: function(){
@@ -543,7 +586,7 @@ var learn_prac2_phase = {
   type: 'html-keyboard-responsefl',
   choices: jsPsych.NO_KEYS,
   response_ends_trial: false,
-  stimulus:create_learning_trial(['GW-Tutorial/object_229.jpg'],['GW-Tutorial/object_250.jpg'],0),
+  stimulus:create_learning_trial(['story_example_03.png'],['story_example_04.png'],0),
   stimulus_duration:3000,
   trial_duration:3000,
   on_finish: function(data) {
@@ -764,6 +807,65 @@ var learn_phase_color = {
   }
 }
 
+learn_phase_break = {
+  type: 'html-keyboard-response',
+      stimulus:  `
+        <div id="break-container" style="font-size: 24px; max-width: 800px; margin: auto; text-align: center;">
+          <p><strong>Please take a short (up to 60 seconds) break.</strong></p>
+          <p>Use this time to stretch and reset. After the break, you will continue to learn more flights.</p>
+          <p>If you would like to resume without a break, press the <strong>spacebar</strong>.</p>
+          <p>Otherwise, the screen will advance automatically after 60 seconds.</p><br><br><br>
+          <p><strong>Time remaining: <span id="countdown">60</span> seconds</strong></p>
+        </div>
+      `,
+      choices: ['spacebar'],
+      trial_duration: 60000, // 60 seconds
+      response_ends_trial: true,
+  on_load: function() {
+    let countdown = 60;
+    const countdownEl = document.getElementById('countdown');
+    const interval = setInterval(() => {
+      countdown--;
+      if (countdownEl) countdownEl.textContent = countdown;
+      if (countdown <= 0) clearInterval(interval);
+    }, 1000);
+  },
+  on_finish: function(data) {
+    data.stimulus='learn_break'
+    data.trial_type = 'learn_break';
+  }
+}
+
+learn_phase_end_break = {
+  type: 'html-keyboard-response',
+      stimulus: `
+        <div style="font-size: 24px; max-width: 800px; margin: auto; text-align: center;">
+          <p><strong>Thank you for completing the first part of your job. Please take a short (up to 60 seconds) break.</strong></p>
+          <p>Use this time to stretch and reset. After the break, you will continue to the next part of your job.</p>
+          <p>If you would like to resume without a break, press the <strong>spacebar</strong>.</p>
+          <p>Otherwise, the screen will advance automatically after 60 seconds.</p><br><br><br>
+          <p><strong>Time remaining: <span id="countdown2">60</span> seconds</strong></p>
+        </div>
+      `,
+      choices: ['spacebar'],
+      trial_duration: 60000, // 60 seconds
+      response_ends_trial: true,
+  on_load: function() {
+    let countdown = 60;
+    const countdownEl = document.getElementById('countdown2');
+    const interval = setInterval(() => {
+      countdown--;
+      if (countdownEl) countdownEl.textContent = countdown;
+      if (countdown <= 0) clearInterval(interval);
+    }, 1000);
+  },
+  on_finish: function(data) {
+    data.stimulus='learn_break'
+    data.trial_type = 'learn_break';
+  }
+}
+
+
 // learning phase end
 var directcorrectness = []
 
@@ -962,9 +1064,6 @@ function recon_createPhase3(numberoftrial){
         //     jsPsych.finishTrial(); // End trial on button click
         //   });
         // },
-        on_start:function(){
-          
-        },
         on_finish: function (data) {
           data.trial_type='Graph Reconstruction'
           data.linedress=''
@@ -1019,6 +1118,7 @@ var recon_phase3=recon_createPhase3(1)
 correctness = []
 let mem_instruction_number=1
 let intro_mem=create_instruct(mem_instruct,mem_instructnames,mem_instruction_number,phase3[0],a='mem_')
+correctness = []
 
 var curr_shortest_trial=0
 var shortestpath_phase = {
@@ -1111,6 +1211,37 @@ var shortestpath_phase = {
       data.specific_pairs = 'Two Edge Six Edge'
     }
 
+
+    infKP += 1
+    if (infKP==1){
+      // Start the timer
+      timer = 0;
+      infINT = setInterval(() => {
+          timer++;;
+      }, 1000);
+    }
+    if (infKP == 4 && timer < 4) {
+      clearInterval(infINT)
+      jsPsych.addNodeToEndOfTimeline({
+      timeline: [too_quick],
+      }, jsPsych.resumeExperiment)
+      infKP = -1
+      timer = 0;
+      data.tooquick = 1
+    } else if ((infKP <= 4 && timer >= 4)){
+      infKP = 0
+      clearInterval(infINT);
+      timer = 0
+    }
+
+    if (data.rt && data.rt < 300) {
+      jsPsych.addNodeToEndOfTimeline({
+        timeline: [too_quick],
+        }, jsPsych.resumeExperiment)
+    }
+
+
+
     let sum = 0;
     correctness.forEach(function(value) {
       sum += value;
@@ -1118,10 +1249,13 @@ var shortestpath_phase = {
     data.cumulative_accuracy = sum / correctness.length;
 
 
-    sfa=data.key_press,
-    curr_shortest_trial=curr_shortest_trial+1,
+    part2_sfa=data.key_press
+    if (!part2_sfa){
+      short_warning +=1
+    }
+    curr_shortest_trial=curr_shortest_trial+1
     shortestpath_phase.stimulus=create_shortestpath_trial(room_shortest_up,room_shortest_left,room_shortest_right,curr_shortest_trial)
-    attentioncheck(shortestpath_phase,a=1,curr_shortest_trial,n_shortest_trial,intro_mem)
+    attentioncheck(shortestpath_phase,part2_sfa,curr_shortest_trial,n_shortest_trial,intro_mem,phase='short')
   }
 }
 //Shortest Path memory end
@@ -1159,7 +1293,11 @@ var end_questions = {
       easier = document.getElementById('easier').value
       similar = document.getElementById('similar').value
       comments = document.getElementById('comments').value
-      jsPsych.finishTrial()
+      let checked = validateForm()
+      if (checked){
+        jsPsych.finishTrial()
+      }
+  
   });
   },
   on_finish: function(data) {
@@ -1218,7 +1356,6 @@ var thank_you = {
   on_finish: function (data) {
     data.trial_type = 'thank_you';
     data.detectfocus = detectfocus;
-    save_data(true)
   }
 }
 
